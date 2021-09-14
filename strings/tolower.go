@@ -5,14 +5,15 @@ func ToLower(s string, charsCounter int) string {
 
 	finalString := ""
 
+	wordLength := len(s)
 	charsToChange := len(s)
 
 	if charsCounter != 0 {
 		charsToChange = charsCounter
 	}
 
-	for i := 0; i < charsToChange; i++ {
-		if 64 < sentence[i] && sentence[i] < 91 {
+	for i := 0; i < wordLength; i++ {
+		if (64 < sentence[i] && sentence[i] < 91) && i < charsToChange {
 			sentence[i] = sentence[i] + 32
 		}
 

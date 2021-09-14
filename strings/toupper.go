@@ -5,14 +5,15 @@ func ToUpper(s string, charsCounter int) string {
 
 	finalString := ""
 
+	wordLength := len(s)
 	charsToChange := len(s)
 
 	if charsCounter != 0 {
 		charsToChange = charsCounter
 	}
 
-	for i := 0; i < charsToChange; i++ {
-		if 96 < sentence[i] && sentence[i] < 123 {
+	for i := 0; i < wordLength; i++ {
+		if (96 < sentence[i] && sentence[i] < 123) && i < charsToChange {
 			sentence[i] = sentence[i] - 32
 		}
 
