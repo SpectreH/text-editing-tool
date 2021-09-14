@@ -1,11 +1,17 @@
-package piscine
+package strings
 
-func ToLower(s string) string {
+func ToLower(s string, charsCounter int) string {
 	sentence := []rune(s)
 
 	finalString := ""
 
-	for i := 0; i < len(sentence); i++ {
+	charsToChange := len(s)
+
+	if charsCounter != 0 {
+		charsToChange = charsCounter
+	}
+
+	for i := 0; i < charsToChange; i++ {
 		if 64 < sentence[i] && sentence[i] < 91 {
 			sentence[i] = sentence[i] + 32
 		}

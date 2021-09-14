@@ -1,11 +1,17 @@
 package strings
 
-func ToUpper(s string) string {
+func ToUpper(s string, charsCounter int) string {
 	sentence := []rune(s)
 
 	finalString := ""
 
-	for i := 0; i < len(sentence); i++ {
+	charsToChange := len(s)
+
+	if charsCounter != 0 {
+		charsToChange = charsCounter
+	}
+
+	for i := 0; i < charsToChange; i++ {
 		if 96 < sentence[i] && sentence[i] < 123 {
 			sentence[i] = sentence[i] - 32
 		}
