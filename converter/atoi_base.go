@@ -2,10 +2,8 @@ package converter
 
 import "text-editing-tool/numbers"
 
-func AtoiBase(s string, base string) int {
-	if CheckBaseTwo(base) {
-		return 0
-	}
+func AtoiBase(s string, baseToDefine string) int {
+	base := DefineBase(baseToDefine)
 
 	positions := []rune(base)
 	numbersToConvert := []rune(s)
@@ -26,27 +24,15 @@ func AtoiBase(s string, base string) int {
 	return finalResult
 }
 
-func CheckBaseTwo(baseForCheck string) bool {
-	base := []rune(baseForCheck)
-	var checkResult bool = false
+func DefineBase(base string) string {
+	baseForCheck := []rune(base)
+	finalBase := "null"
 
-	if len(baseForCheck) < 2 {
-		checkResult = true
+	if baseForCheck[0] == 104 {
+		finalBase = "0123456789ABCDEF"
+	} else {
+		finalBase = "01"
 	}
 
-	for i := 0; i < len(base); i++ {
-		for k := 0; k < len(base); k++ {
-			if base[i] == 45 || base[i] == 43 {
-				checkResult = true
-			} else if base[i] > base[k] || base[i] < base[k] {
-				continue
-			} else if i == k {
-				continue
-			} else if base[i] == base[k] {
-				checkResult = true
-			}
-		}
-	}
-
-	return checkResult
+	return finalBase
 }
