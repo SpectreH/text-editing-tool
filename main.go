@@ -1,13 +1,14 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"text-editing-tool/converter"
+	"text-editing-tool/errors"
 	"text-editing-tool/words"
 )
 
+// Own struct for modificator from the MODSLIST to save valuable information
 type Modificator struct {
 	class      string
 	lenght     int
@@ -20,9 +21,7 @@ func main() {
 	MODSLIST = [5]string{"hex", "bin", "up", "low", "cap"}
 
 	if len(os.Args) != 3 {
-		fmt.Println("Error! Missing required text files.")
-
-		return
+		errors.PrintError(1)
 	}
 
 	fileSample := os.Args[1]
@@ -31,7 +30,7 @@ func main() {
 	file, err := ioutil.ReadFile(fileSample)
 	CheckFile(err, fileSample)
 
-	text := TranslateFileToRune(file)
+	text := converter.TranslateToRuneSlice(file)
 
 	var wordList [][]rune
 	var currentWord []rune
@@ -39,160 +38,69 @@ func main() {
 
 	var modValues Modificator
 	var modFound bool = false
+	var lastChar bool = false
 
 	for i := 0; i < len(text); i++ {
+		// Checks only for number, letter or symbol. Excluded punctual marks
 		if text[i] != 32 && text[i] != 33 && text[i] != 44 && text[i] != 46 && text[i] != 58 && text[i] != 59 && text[i] != 63 {
 			currentWord = append(currentWord, text[i])
 		} else {
-
-			for furtherIndex := i + 1; furtherIndex < len(text); furtherIndex++ {
-				if text[furtherIndex] == 40 {
-					modValues = CheckMod(i+1, text)
-
-					if modValues.lenght != 0 {
-						delIndex := i
-						for charsToDel := modValues.lenght; charsToDel >= 0; charsToDel-- {
-							text = RemoveIndex(text, delIndex)
-						}
-
-						modFound = true
-						break
-					} else {
-						break
-					}
-				}
-			}
+			FindMod(i, &text, &modValues, &modFound)
 
 			if currentWord != nil {
-				AddWord(&wordList, currentWord)
+				words.AddWord(&wordList, currentWord)
 			}
 
 			if modFound {
 				modFound = false
-				wordPos := len(wordList) - 1
-				for b := modValues.specialNum; b >= 0; b-- {
-					wordList[wordPos] = ModWord(wordList[wordPos], modValues)
-					wordPos = wordPos - 2
-				}
+				UseMod(modValues, &wordList)
 			}
 
+			// Adds to the temp list for future appending punctual marks as a one word
 			for m := i; m < len(text); m++ {
 				if text[m] == 32 || text[m] == 33 || text[m] == 44 || text[m] == 46 || text[m] == 58 || text[m] == 59 || text[m] == 63 {
 					punMarkList = append(punMarkList, text[m])
+					if m == len(text)-1 {
+						lastChar = true
+					}
 				} else {
 					i = m - 1
 					break
 				}
 			}
 
-			AddWord(&wordList, punMarkList)
+			// Adds word or punctual marks to the list for future formating
+			words.AddWord(&wordList, punMarkList)
 			currentWord = nil
 			punMarkList = nil
 
-		}
-	}
-
-	if currentWord != nil {
-		AddWord(&wordList, currentWord)
-	}
-
-	for i := 1; i < len(wordList); i = i + 2 {
-		var sortedPunctList []rune = nil
-
-		for k := 0; k < len(wordList[i]); k++ {
-			if wordList[i][k] == 32 {
-				continue
-			} else {
-				sortedPunctList = append(sortedPunctList, wordList[i][k])
-			}
-		}
-
-		if i != len(wordList)-1 {
-			sortedPunctList = append(sortedPunctList, 32)
-		}
-
-		wordList[i] = sortedPunctList
-	}
-
-	for i := 0; i < len(wordList); i = i + 2 {
-		for k := 0; k < len(wordList[i]); k++ {
-			if (wordList[i][k] == 97 || wordList[i][k] == 65) && len(wordList[i]) == 1 {
-				wordList[i] = append(wordList[i], 110)
-			} else {
+			if lastChar {
 				break
 			}
 		}
 	}
 
-	firstQouteFound := false
-	secondQouteFound := false
-
-	firstQoutePos := -1
-	secondQoutePos := -1
-
-	fmt.Println(wordList)
-
-	for i := 0; i < len(wordList); i++ {
-		for k := 0; k < len(wordList[i]); k++ {
-			if wordList[i][k] == 39 && len(wordList[i]) == 1 {
-				if !firstQouteFound && firstQoutePos == -1 {
-					if wordList[i+1][0] == 32 {
-						firstQouteFound = true
-						firstQoutePos = i
-					}
-				} else if firstQouteFound {
-					if wordList[i-1][0] == 32 {
-						secondQouteFound = true
-						secondQoutePos = i
-						break
-					}
-				}
-			}
-		}
-
-		if firstQouteFound && secondQouteFound {
-			wordList[firstQoutePos+1] = nil
-			wordList[secondQoutePos-1] = nil
-			break
-		}
+	if currentWord != nil {
+		words.AddWord(&wordList, currentWord)
 	}
 
-	fmt.Println(wordList)
+	FormatPunctList(&wordList)
+	FormatArticle(&wordList)
+	FormatQuotes(&wordList)
 
-	var test []rune
-
-	for a := 0; a < len(wordList); a++ {
-		for b := 0; b < len(wordList[a]); b++ {
-			test = append(test, wordList[a][b])
-		}
-	}
-
-	finalTextInBytes := TranslateToBytes(test)
-
-	errorTwo := ioutil.WriteFile(fileResult, finalTextInBytes, 0)
-	CheckFile(errorTwo, fileResult)
-}
-
-func TranslateFileToRune(bytes []byte) []rune {
-	var text []rune
-
-	for i := range bytes {
-		text = append(text, rune(bytes[i]))
-	}
-
-	return text
+	SaveFormatedText(&wordList, fileResult)
 }
 
 func CheckFile(e error, fileName string) {
 	if e != nil {
-		// TODO Error message
-		// errorMessage := "ERROR: open " + fileName + ": no such file or directory\n"
-		// PrintBytes([]byte(errorMessage))
+		errors.PrintError(2)
 		os.Exit(1)
 	}
 }
 
+// Starts checking then '(' found. Checks if mod exists
 func CheckMod(modStartingIndex int, text []rune) Modificator {
+	// Starts checking then '(' found. Checks if mod exists
 	var firstCheckResult Modificator
 	var modFound bool
 
@@ -209,7 +117,6 @@ func CheckMod(modStartingIndex int, text []rune) Modificator {
 		}
 
 		if modFound {
-			//fmt.Println("MOD FOUND")
 			firstCheckResult.class = MODSLIST[k]
 			firstCheckResult.lenght = len(MODSLIST[k])
 			break
@@ -223,6 +130,7 @@ func CheckMod(modStartingIndex int, text []rune) Modificator {
 	return CheckModSpecNumber(modStartingIndex, text, firstCheckResult)
 }
 
+// Checks if optional arguments exists
 func CheckModSpecNumber(modStartingIndex int, text []rune, checkResult Modificator) Modificator {
 	var specialNumber []rune
 	index := modStartingIndex + checkResult.lenght + 1
@@ -235,15 +143,13 @@ func CheckModSpecNumber(modStartingIndex int, text []rune, checkResult Modificat
 				checkResult.lenght = checkResult.lenght + 2
 				break
 			} else {
-				// TODO Error message
-				os.Exit(1)
+				errors.PrintError(3)
 			}
 		}
 	} else if text[index] == 41 {
 		checkResult.specialNum = 0
 	} else {
-		// TODO Error message
-		os.Exit(1)
+		errors.PrintError(3)
 	}
 
 	checkResult.specialNum = converter.BasicAtoi(specialNumber)
@@ -252,34 +158,31 @@ func CheckModSpecNumber(modStartingIndex int, text []rune, checkResult Modificat
 	return checkResult
 }
 
-func TranslateToBytes(runes []rune) []byte {
-	var text []byte
+// Tries to find mod until new word starts
+func FindMod(i int, text *[]rune, modValues *Modificator, modFound *bool) {
+	for furtherIndex := i + 1; furtherIndex < len(*text); furtherIndex++ {
+		if (*text)[furtherIndex] == 40 {
+			*modValues = CheckMod(i+1, *text)
 
-	for i := range runes {
-		text = append(text, byte(runes[i]))
-	}
-
-	return text
-}
-
-func RemoveIndex(s []rune, index int) []rune {
-	return append(s[:index], s[index+1:]...)
-}
-
-func AddWord(wordList *[][]rune, wordToAdd []rune) {
-	*wordList = append(*wordList, nil)
-	for i := len(*wordList) - 1; i < len(*wordList); i++ {
-		for k := 0; k < len(wordToAdd); k++ {
-			(*wordList)[i] = append((*wordList)[i], wordToAdd[k])
+			if modValues.lenght != 0 {
+				delIndex := i
+				for charsToDel := modValues.lenght; charsToDel >= 0; charsToDel-- {
+					*text = words.RemoveIndex(*text, delIndex)
+				}
+				*modFound = true
+				break
+			} else {
+				break
+			}
 		}
 	}
 }
 
-func ModWord(word []rune, modValues Modificator) []rune {
-
+// Shows what mod to use for word(s)
+func ChooseMod(word []rune, modValues Modificator) []rune {
 	if modValues.class == "hex" || modValues.class == "bin" {
 		dataToChange := converter.AtoiBase(word, modValues.class)
-		return converter.PrintNbr(dataToChange)
+		return converter.ConvertIntToRune(dataToChange)
 	} else if modValues.class == "up" {
 		return words.ToUpper(word)
 	} else if modValues.class == "low" {
@@ -287,5 +190,101 @@ func ModWord(word []rune, modValues Modificator) []rune {
 	} else {
 		return words.Cap(word)
 	}
+}
 
+// Uses mod to word(s)
+func UseMod(modValues Modificator, wordList *[][]rune) {
+	wordPos := len(*wordList) - 1
+
+	if modValues.specialNum == 0 {
+		modValues.specialNum = modValues.specialNum + 1
+	}
+
+	for b := modValues.specialNum; b > 0; b-- {
+		(*wordList)[wordPos] = ChooseMod((*wordList)[wordPos], modValues)
+		wordPos = wordPos - 2
+	}
+}
+
+// Formats punctual marks as per assignment
+func FormatPunctList(wordList *[][]rune) {
+	for i := 1; i < len(*wordList); i = i + 2 {
+		var sortedPunctList []rune = nil
+
+		for k := 0; k < len((*wordList)[i]); k++ {
+			if (*wordList)[i][k] == 32 {
+				continue
+			} else {
+				sortedPunctList = append(sortedPunctList, (*wordList)[i][k])
+			}
+		}
+
+		if i != len(*wordList)-1 {
+			sortedPunctList = append(sortedPunctList, 32)
+		}
+
+		(*wordList)[i] = sortedPunctList
+	}
+}
+
+// Formats article 'A' and 'a'
+func FormatArticle(wordList *[][]rune) {
+	for i := 0; i < len(*wordList); i = i + 2 {
+		for k := 0; k < len((*wordList)[i]); k++ {
+			if ((*wordList)[i][k] == 97 || (*wordList)[i][k] == 65) && len((*wordList)[i]) == 1 {
+				(*wordList)[i] = append((*wordList)[i], 110)
+			} else {
+				break
+			}
+		}
+	}
+}
+
+// Formats quotes as per assignment
+func FormatQuotes(wordList *[][]rune) {
+	firstQuoteFound := false
+	secondQuoteFound := false
+	firstQuotePos := -1
+	secondQuotePos := -1
+
+	for i := 0; i < len(*wordList); i++ {
+		for k := 0; k < len((*wordList)[i]); k++ {
+			if (*wordList)[i][k] == 39 && len((*wordList)[i]) == 1 {
+				if !firstQuoteFound && firstQuotePos == -1 {
+					if (*wordList)[i+1][0] == 32 {
+						firstQuoteFound = true
+						firstQuotePos = i
+					}
+				} else if firstQuoteFound {
+					if (*wordList)[i-1][0] == 32 {
+						secondQuoteFound = true
+						secondQuotePos = i
+						break
+					}
+				}
+			}
+		}
+
+		if firstQuoteFound && secondQuoteFound {
+			(*wordList)[firstQuotePos+1] = nil
+			(*wordList)[secondQuotePos-1] = nil
+			break
+		}
+	}
+}
+
+// Saves formated list to result.txt
+func SaveFormatedText(wordList *[][]rune, fileResult string) {
+	var wordListInBytes []rune
+
+	for a := 0; a < len(*wordList); a++ {
+		for b := 0; b < len((*wordList)[a]); b++ {
+			wordListInBytes = append(wordListInBytes, (*wordList)[a][b])
+		}
+	}
+
+	finalTextInBytes := converter.TranslateToByteSlice(wordListInBytes)
+
+	errorTwo := ioutil.WriteFile(fileResult, finalTextInBytes, 0)
+	CheckFile(errorTwo, fileResult)
 }
