@@ -24,45 +24,76 @@ func main() {
 		return
 	}
 
+	var wordsList [][]rune
 	var currentWord []rune
-	//var wordStartIndex []int
 
 	fileSample := os.Args[1]
-	// fileResult := os.Args[2]
+	fileResult := os.Args[2]
 
 	file, err := ioutil.ReadFile(fileSample)
+	CheckFile(err, fileSample)
 
-	CheckFiles(err, fileSample)
+	text := TranslateFileToRune(file)
 
-	text := TranslateFileText(file)
-
-	var writingWordDown bool
 	var modValues Modificator
+	// var textStart bool = true
+	var wordWrited bool = false
+	var saveIndex int = 0
 
 	for i := 0; i < len(text); i++ {
 		if (64 < text[i] && text[i] < 91) || (96 < text[i] && text[i] < 123) {
-			writingWordDown = true
-		} else if text[i] == 32 {
-			writingWordDown = false
+			wordWrited = false
+			currentWord = append(currentWord, text[i])
+		} else {
+			saveIndex = i
+			for furtherIndex := i - 1; furtherIndex < len(text); furtherIndex++ {
+				if text[furtherIndex] == 40 {
+					modValues = CheckMod(i, text)
+
+					if modValues.lenght != 0 {
+						if modValues.specialNum != 0 {
+							modValues.lenght = modValues.lenght + 2
+						}
+
+						delIndex := i
+
+						for charsToDel := modValues.lenght; charsToDel > 0; charsToDel-- {
+							text = RemoveIndex(text, delIndex)
+						}
+						break
+					}
+
+				} else if (64 < text[furtherIndex] && text[furtherIndex] < 91) || (96 < text[furtherIndex] && text[furtherIndex] < 123) {
+					wordWrited = true
+					break
+				}
+			}
+
+			wordToAdd(&wordsList, currentWord)
+			currentWord = nil
 		}
 
-		if text[i] == 40 {
-			modValues = CheckMod(i, text)
-
-			if modValues.lenght != 0 {
-				i = i + modValues.lenght
-			} else {
-				writingWordDown = true
+		if wordWrited {
+			for furtherIndex := saveIndex; furtherIndex < len(text); furtherIndex++ {
+				if !(64 < text[furtherIndex] && text[furtherIndex] < 91) || (96 < text[furtherIndex] && text[furtherIndex] < 123) {
+					currentWord = append(currentWord, text[furtherIndex])
+				} else {
+					i = furtherIndex - 1
+					wordToAdd(&wordsList, currentWord)
+					currentWord = nil
+					break
+				}
 			}
 		}
-
-		if writingWordDown {
-			currentWord = append(currentWord, text[i])
-		}
 	}
+
+	finalTextInBytes := TranslateToBytes(text)
+
+	errorTwo := ioutil.WriteFile(fileResult, finalTextInBytes, 0)
+	CheckFile(errorTwo, fileResult)
 }
 
-func TranslateFileText(bytes []byte) []rune {
+func TranslateFileToRune(bytes []byte) []rune {
 	var text []rune
 
 	for i := range bytes {
@@ -72,7 +103,7 @@ func TranslateFileText(bytes []byte) []rune {
 	return text
 }
 
-func CheckFiles(e error, fileName string) {
+func CheckFile(e error, fileName string) {
 	if e != nil {
 		// TODO Error message
 		// errorMessage := "ERROR: open " + fileName + ": no such file or directory\n"
@@ -98,7 +129,7 @@ func CheckMod(modStartingIndex int, text []rune) Modificator {
 		}
 
 		if modFound {
-			fmt.Println("Mod Found")
+			fmt.Println("MOD FOUND")
 			firstCheckResult.class = MODSLIST[k]
 			firstCheckResult.lenght = len(MODSLIST[k])
 			break
@@ -144,6 +175,30 @@ func CheckModSpecNumber(modStartingIndex int, text []rune, checkResult Modificat
 	}
 
 	checkResult.specialNum = converter.BasicAtoi(specialNumber)
+	checkResult.lenght = checkResult.lenght + 2 + len(specialNumber)
 
 	return checkResult
+}
+
+func TranslateToBytes(runes []rune) []byte {
+	var text []byte
+
+	for i := range runes {
+		text = append(text, byte(runes[i]))
+	}
+
+	return text
+}
+
+func RemoveIndex(s []rune, index int) []rune {
+	return append(s[:index], s[index+1:]...)
+}
+
+func wordToAdd(wordsList *[][]rune, wordToAdd []rune) {
+	*wordsList = append(*wordsList, nil)
+	for i := len(*wordsList) - 1; i < len(*wordsList); i++ {
+		for k := 0; k < len(wordToAdd); k++ {
+			(*wordsList)[i] = append((*wordsList)[i], wordToAdd[k])
+		}
+	}
 }
