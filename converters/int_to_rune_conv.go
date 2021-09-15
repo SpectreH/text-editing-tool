@@ -1,4 +1,4 @@
-package converter
+package converters
 
 // // converts from int number to rune array number
 func ConvertIntToRune(n int) []rune {

@@ -1,4 +1,4 @@
-package converter
+package converters
 
 func TranslateToByteSlice(runes []rune) []byte {
 	var text []byte

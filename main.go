@@ -1,9 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
-	"text-editing-tool/converter"
+	"text-editing-tool/converters"
 	"text-editing-tool/errors"
 	"text-editing-tool/words"
 )
@@ -30,7 +31,7 @@ func main() {
 	file, err := ioutil.ReadFile(fileSample)
 	CheckFile(err, fileSample)
 
-	text := converter.TranslateToRuneSlice(file)
+	text := converters.TranslateToRuneSlice(file)
 
 	var wordList [][]rune
 	var currentWord []rune
@@ -79,6 +80,8 @@ func main() {
 			}
 		}
 	}
+
+	fmt.Println(wordList)
 
 	if currentWord != nil {
 		words.AddWord(&wordList, currentWord)
@@ -152,7 +155,7 @@ func CheckModSpecNumber(modStartingIndex int, text []rune, checkResult Modificat
 		errors.PrintError(3)
 	}
 
-	checkResult.specialNum = converter.BasicAtoi(specialNumber)
+	checkResult.specialNum = converters.BasicAtoi(specialNumber)
 	checkResult.lenght = checkResult.lenght + 2 + len(specialNumber)
 
 	return checkResult
@@ -181,8 +184,8 @@ func FindMod(i int, text *[]rune, modValues *Modificator, modFound *bool) {
 // Shows what mod to use for word(s)
 func ChooseMod(word []rune, modValues Modificator) []rune {
 	if modValues.class == "hex" || modValues.class == "bin" {
-		dataToChange := converter.AtoiBase(word, modValues.class)
-		return converter.ConvertIntToRune(dataToChange)
+		dataToChange := converters.AtoiBase(word, modValues.class)
+		return converters.ConvertIntToRune(dataToChange)
 	} else if modValues.class == "up" {
 		return words.ToUpper(word)
 	} else if modValues.class == "low" {
@@ -283,7 +286,7 @@ func SaveFormatedText(wordList *[][]rune, fileResult string) {
 		}
 	}
 
-	finalTextInBytes := converter.TranslateToByteSlice(wordListInBytes)
+	finalTextInBytes := converters.TranslateToByteSlice(wordListInBytes)
 
 	errorTwo := ioutil.WriteFile(fileResult, finalTextInBytes, 0)
 	CheckFile(errorTwo, fileResult)

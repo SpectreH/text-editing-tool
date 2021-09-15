@@ -1,4 +1,4 @@
-package converter
+package converters
 
 // converts from rune array number to int number
 func BasicAtoi(s_rune []rune) int {

@@ -1,4 +1,4 @@
-package converter
+package converters
 
 import (
 	"text-editing-tool/numbers"
