@@ -1,27 +1,28 @@
 package converter
 
-import "text-editing-tool/numbers"
+import (
+	"text-editing-tool/numbers"
+)
 
-func AtoiBase(s string, baseToDefine string) int {
+func AtoiBase(numbersToConvert []rune, baseToDefine string) int {
 	base := DefineBase(baseToDefine)
 
 	positions := []rune(base)
-	numbersToConvert := []rune(s)
 	system := len(base)
 
-	var finalResult int = 0
+	var finalResultInInt int = 0
 
 	for i := 0; i < len(numbersToConvert); i++ {
 		for k := 0; k < len(positions); k++ {
 			if numbersToConvert[i] == positions[k] {
 				systemInPower := numbers.Pow(system, ((len(numbersToConvert) - 1) - i))
-				finalResult = finalResult + (k * systemInPower)
+				finalResultInInt = finalResultInInt + (k * systemInPower)
 				break
 			}
 		}
 	}
 
-	return finalResult
+	return finalResultInInt
 }
 
 func DefineBase(base string) string {
