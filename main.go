@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"text-editing-tool/converters"
@@ -42,6 +41,14 @@ func main() {
 	var lastChar bool = false
 
 	for i := 0; i < len(text); i++ {
+		// If new-line and return in file, start new word
+		if text[i] == 10 {
+			currentWord = append(currentWord, text[i])
+			words.AddWord(&wordList, currentWord)
+			currentWord = nil
+			punMarkList = nil
+			continue
+		}
 		// Checks only for number, letter or symbol. Excluded punctual marks
 		if text[i] != 32 && text[i] != 33 && text[i] != 44 && text[i] != 46 && text[i] != 58 && text[i] != 59 && text[i] != 63 {
 			currentWord = append(currentWord, text[i])
@@ -80,8 +87,6 @@ func main() {
 			}
 		}
 	}
-
-	fmt.Println(wordList)
 
 	if currentWord != nil {
 		words.AddWord(&wordList, currentWord)
@@ -211,8 +216,22 @@ func UseMod(modValues Modificator, wordList *[][]rune) {
 
 // Formats punctual marks as per assignment
 func FormatPunctList(wordList *[][]rune) {
-	for i := 1; i < len(*wordList); i = i + 2 {
+	for i := 0; i < len(*wordList); i++ {
 		var sortedPunctList []rune = nil
+		notPunctElement := false
+
+		for k := 0; k < len((*wordList)[i]); k++ {
+			if (*wordList)[i][k] == 32 || (*wordList)[i][k] == 33 || (*wordList)[i][k] == 44 || (*wordList)[i][k] == 46 || (*wordList)[i][k] == 58 || (*wordList)[i][k] == 59 || (*wordList)[i][k] == 63 {
+				continue
+			} else {
+				notPunctElement = true
+				break
+			}
+		}
+
+		if notPunctElement {
+			continue
+		}
 
 		for k := 0; k < len((*wordList)[i]); k++ {
 			if (*wordList)[i][k] == 32 {
@@ -232,12 +251,10 @@ func FormatPunctList(wordList *[][]rune) {
 
 // Formats article 'A' and 'a'
 func FormatArticle(wordList *[][]rune) {
-	for i := 0; i < len(*wordList); i = i + 2 {
+	for i := 0; i < len(*wordList); i++ {
 		for k := 0; k < len((*wordList)[i]); k++ {
 			if ((*wordList)[i][k] == 97 || (*wordList)[i][k] == 65) && len((*wordList)[i]) == 1 {
 				(*wordList)[i] = append((*wordList)[i], 110)
-			} else {
-				break
 			}
 		}
 	}
@@ -252,26 +269,24 @@ func FormatQuotes(wordList *[][]rune) {
 
 	for i := 0; i < len(*wordList); i++ {
 		for k := 0; k < len((*wordList)[i]); k++ {
-			if (*wordList)[i][k] == 39 && len((*wordList)[i]) == 1 {
-				if !firstQuoteFound && firstQuotePos == -1 {
-					if (*wordList)[i+1][0] == 32 {
-						firstQuoteFound = true
-						firstQuotePos = i
-					}
-				} else if firstQuoteFound {
-					if (*wordList)[i-1][0] == 32 {
-						secondQuoteFound = true
-						secondQuotePos = i
-						break
-					}
+			if (*wordList)[i][k] == 39 {
+				if !firstQuoteFound && firstQuotePos == -1 && len((*wordList)[i]) == 1 {
+					firstQuoteFound = true
+					firstQuotePos = i
+				} else if firstQuoteFound && len((*wordList)[i-1]) == 1 && (*wordList)[i][0] == 39 {
+					secondQuoteFound = true
+					secondQuotePos = i
 				}
 			}
-		}
 
-		if firstQuoteFound && secondQuoteFound {
-			(*wordList)[firstQuotePos+1] = nil
-			(*wordList)[secondQuotePos-1] = nil
-			break
+			if firstQuoteFound && secondQuoteFound {
+				(*wordList)[firstQuotePos+1] = nil
+				(*wordList)[secondQuotePos-1] = nil
+				firstQuoteFound = false
+				secondQuoteFound = false
+				firstQuotePos = -1
+				secondQuotePos = -1
+			}
 		}
 	}
 }
